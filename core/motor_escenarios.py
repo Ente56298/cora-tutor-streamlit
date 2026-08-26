@@ -9,7 +9,7 @@ def generar_escenarios(intencion):
         "restricciones_a_verificar": intencion.get(
             "restricciones", []
         ),
-        "estado": "candidato_no_evaluado"
+        "estado": "candidato"
     }
 
     return [escenario]
