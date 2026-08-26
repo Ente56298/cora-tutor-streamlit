@@ -18,6 +18,10 @@ intencion_texto = st.text_input(
     "¿Qué quieres lograr?"
 )
 
+if intencion_texto.strip():
+    intencion = crear_intencion(intencion_texto)
+    st.json(intencion)
+    
 # Memoria temporal del prototipo.
 # Por ahora los checkpoints viven durante la sesión de Streamlit.
 if "checkpoints" not in st.session_state:
