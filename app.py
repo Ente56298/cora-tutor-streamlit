@@ -1,6 +1,7 @@
 from pathlib import Path
+import ast
 
-code = r'''import json
+code = '''import json
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -290,6 +291,9 @@ else:
     )
 '''
 
-path = Path("/mnt/data/app.py")
+# Validate Python syntax before saving.
+ast.parse(code)
+
+path = Path("/mnt/data/app_cora_checkpoint_v01.py")
 path.write_text(code, encoding="utf-8")
-print(path)
+print("Archivo corregido y sintaxis validada:", path)
