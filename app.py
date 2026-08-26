@@ -24,6 +24,14 @@ recursos_texto = st.text_input(
 
 if intencion_texto.strip():
     intencion = crear_intencion(intencion_texto)
+
+    if recursos_texto.strip():
+        intencion["recursos_disponibles"] = [
+            recurso.strip()
+            for recurso in recursos_texto.split(",")
+            if recurso.strip()
+        ]
+
     st.json(intencion)
     
 # Memoria temporal del prototipo.
