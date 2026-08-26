@@ -1,4 +1,4 @@
-import json
+    import json
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -205,6 +205,13 @@ if area == "Redes":
                 },
                 "evidencias": evidencias,
                 "por_explorar": brechas,
+                "puente_fisico": {
+                    "concepto": "ip",
+                    "ejemplo": puente["ejemplo"],
+                    "ayuda": puente["ayuda"],
+                    "limite": puente["limite"]
+                },
+             
                 "interpretacion": interpretacion,
                 "siguiente_paso": siguiente_paso,
                 "fuente": "CO•RA Tutor · interacción directa",
