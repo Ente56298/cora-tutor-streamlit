@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 from ejemplos_fisicos import EJEMPLOS_FISICOS
+from core.motor_intencion import crear_intencion
 st.set_page_config(
     page_title="CO•RA Tutor",
     page_icon="🧭",
