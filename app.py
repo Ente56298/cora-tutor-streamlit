@@ -53,13 +53,46 @@ if area == "Redes":
         placeholder="No busques la respuesta. Queremos conocer tu punto de partida."
     )
 
-    if st.button("Evaluar respuesta"):
+   if st.button("Evaluar respuesta"):
 
-        if not respuesta.strip():
-            st.warning("Escribe una respuesta antes de evaluar.")
+    if not interpretacion.strip() or not respuesta.strip():
+        st.warning("Completa la comprensión de la consigna y la respuesta técnica.")
 
-        else:
-            texto = respuesta.lower()
+    else:
+        # Evaluación de comprensión de la consigna
+        texto_interpretacion = interpretacion.lower()
+
+        comprension_puntos = 0
+        comprension_evidencias = []
+
+        # ¿Entendió que debe explicar qué es una IP?
+        if any(p in texto_interpretacion for p in [
+            "qué es",
+            "que es",
+            "explicar",
+            "definir",
+            "significa"
+        ]):
+            comprension_puntos += 1
+            comprension_evidencias.append(
+                "Identifica que debe explicar qué es una dirección IP."
+            )
+
+        # ¿Entendió que debe explicar para qué sirve?
+        if any(p in texto_interpretacion for p in [
+            "para qué sirve",
+            "para que sirve",
+            "función",
+            "funcion",
+            "utilidad",
+            "sirve"
+        ]):
+            comprension_puntos += 1
+            comprension_evidencias.append(
+                "Identifica que debe explicar para qué sirve una dirección IP."
+            )
+
+        texto = respuesta.lower()
 
             puntos = 0
             evidencias = []
@@ -123,9 +156,37 @@ if area == "Redes":
                 nivel = "Sólido"
                 mensaje = "Tu explicación contiene los conceptos fundamentales."
 
-            st.success("Respuesta analizada.")
+    st.success("Respuesta analizada.")
 
-            col1, col2 = st.columns(2)
+if comprension_puntos == 0:
+    nivel_comprension = "No clara"
+elif comprension_puntos == 1:
+    nivel_comprension = "Parcial"
+else:
+    nivel_comprension = "Clara"
+
+st.markdown("### Evaluación por dimensiones")
+
+colc1, colc2 = st.columns(2)
+
+with colc1:
+    st.metric(
+        "Comprensión de consigna",
+        f"{comprension_puntos}/2 · {nivel_comprension}"
+    )
+
+with colc2:
+    st.metric(
+        "Conocimiento técnico",
+        f"{puntos}/3 · {nivel}"
+    )
+
+if comprension_evidencias:
+    st.markdown("#### Evidencia de comprensión")
+    for evidencia in comprension_evidencias:
+        st.write("•", evidencia)
+
+col1, col2 = st.columns(2)
 
             with col1:
                 st.metric(
