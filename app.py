@@ -6,6 +6,7 @@ from ejemplos_fisicos import EJEMPLOS_FISICOS
 from core.motor_intencion import crear_intencion
 from core.motor_escenarios import generar_escenarios
 from core.motor_evaluacion import evaluar_escenario
+from core.motor_observacion import crear_observacion_reportada
 
 st.set_page_config(
     page_title="CO•RA Tutor",
@@ -23,6 +24,10 @@ intencion_texto = st.text_input(
 
 recursos_texto = st.text_input(
     "¿Con qué cuentas ahora?"
+)
+
+observacion_texto = st.text_input(
+    "¿Qué estás observando?"
 )
 
 if intencion_texto.strip():
