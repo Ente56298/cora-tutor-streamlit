@@ -14,6 +14,10 @@ st.title("🧭 CO•RA Tutor")
 st.subheader("Trayectoria adaptativa de aprendizaje")
 st.caption("Contexto abundante por detrás; simplicidad por delante.")
 
+intencion_texto = st.text_input(
+    "¿Qué quieres lograr?"
+)
+
 # Memoria temporal del prototipo.
 # Por ahora los checkpoints viven durante la sesión de Streamlit.
 if "checkpoints" not in st.session_state:
