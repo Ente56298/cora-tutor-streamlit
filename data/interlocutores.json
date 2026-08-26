@@ -1,1 +1,38 @@
-
+[
+  {
+    "id": "INT-001",
+    "nombre": "ChatGPT",
+    "tipo": "IA",
+    "estado": "activo"
+  },
+  {
+    "id": "INT-002",
+    "nombre": "Gemini",
+    "tipo": "IA",
+    "estado": "activo"
+  },
+  {
+    "id": "INT-003",
+    "nombre": "Claude",
+    "tipo": "IA",
+    "estado": "activo"
+  },
+  {
+    "id": "INT-004",
+    "nombre": "Qwen",
+    "tipo": "IA",
+    "estado": "activo"
+  },
+  {
+    "id": "INT-005",
+    "nombre": "Kimi",
+    "tipo": "IA",
+    "estado": "activo"
+  },
+  {
+    "id": "INT-006",
+    "nombre": "Dola",
+    "tipo": "IA",
+    "estado": "activo"
+  }
+]
