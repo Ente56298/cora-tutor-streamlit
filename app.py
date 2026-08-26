@@ -18,6 +18,10 @@ intencion_texto = st.text_input(
     "¿Qué quieres lograr?"
 )
 
+recursos_texto = st.text_input(
+    "¿Con qué cuentas ahora?"
+)
+
 if intencion_texto.strip():
     intencion = crear_intencion(intencion_texto)
     st.json(intencion)
