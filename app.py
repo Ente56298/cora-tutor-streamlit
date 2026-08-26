@@ -1,7 +1,4 @@
-from pathlib import Path
-import ast
-
-code = '''import json
+import json
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -289,11 +286,3 @@ else:
         f"La exploración de **{area}** será agregada después de validar "
         "primero el modelo de checkpoints con Redes."
     )
-'''
-
-# Validate Python syntax before saving.
-ast.parse(code)
-
-path = Path("/mnt/data/app_cora_checkpoint_v01.py")
-path.write_text(code, encoding="utf-8")
-print("Archivo corregido y sintaxis validada:", path)
