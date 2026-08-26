@@ -239,7 +239,10 @@ if area == "Redes":
                     st.write("•", brecha)
             else:
                 st.write("• No detectamos una brecha básica en esta primera pregunta.")
-
+                st.markdown("#### 🌍 Puente con el mundo físico")
+                st.write(f"**Ejemplo:** {puente['ejemplo']}")
+                st.write(f"**Ayuda a comprender:** {puente['ayuda']}")
+                st.caption(f"Límite de la analogía: {puente['limite']}")
             col1, col2 = st.columns(2)
 
             with col1:
