@@ -39,8 +39,8 @@ if intencion_texto.strip():
             for recurso in recursos_texto.split(",")
             if recurso.strip()
         ]
-
-        intencion["observaciones"] = []
+    
+    intencion["observaciones"] = []
 
     if observacion_texto.strip():
         intencion["observaciones"].append(
