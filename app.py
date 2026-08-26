@@ -1,3 +1,8 @@
+from pathlib import Path
+
+code = r'''import json
+from datetime import datetime, timezone
+
 import streamlit as st
 
 st.set_page_config(
@@ -7,7 +12,13 @@ st.set_page_config(
 )
 
 st.title("🧭 CO•RA Tutor")
-st.subheader("Evaluación adaptativa de habilidades")
+st.subheader("Trayectoria adaptativa de aprendizaje")
+st.caption("Contexto abundante por detrás; simplicidad por delante.")
+
+# Memoria temporal del prototipo.
+# Por ahora los checkpoints viven durante la sesión de Streamlit.
+if "checkpoints" not in st.session_state:
+    st.session_state.checkpoints = []
 
 # Identidad mínima
 nombre = st.text_input(
@@ -16,7 +27,7 @@ nombre = st.text_input(
 )
 
 area = st.selectbox(
-    "Selecciona un área para evaluar",
+    "Selecciona un área para explorar",
     [
         "Redes",
         "Linux",
@@ -33,87 +44,57 @@ if area == "Redes":
 
     st.markdown("### Pregunta 1 · Direccionamiento IP")
 
+    pregunta = "¿Qué es una dirección IP y para qué sirve?"
+
     st.write(
         "Con tus propias palabras: "
-        "**¿qué es una dirección IP y para qué sirve?**"
+        f"**{pregunta}**"
     )
 
-    # DIMENSIÓN 1
-    st.markdown("#### 1. Comprensión de la consigna")
+    # ==========================================
+    # 1. PUNTO A · CONCEPCIÓN INICIAL
+    # ==========================================
 
-    interpretacion = st.text_area(
-        "Antes de responder, ¿qué entiendes que te está preguntando?",
-        placeholder="Explica brevemente qué crees que debes responder."
+    st.markdown("#### 1. Punto A · ¿Qué piensas al respecto?")
+
+    concepcion = st.text_area(
+        "Antes de buscar una respuesta correcta, cuéntame cómo lo entiendes tú.",
+        placeholder=(
+            "Puedes usar ejemplos, comparaciones, recuerdos o dudas. "
+            "Aquí no se califica si está bien o mal."
+        )
     )
 
-    # DIMENSIÓN 2
-    st.markdown("#### 2. Conocimiento técnico")
+    # ==========================================
+    # 2. CONOCIMIENTO DEMOSTRADO
+    # ==========================================
+
+    st.markdown("#### 2. ¿Qué puedes explicar con lo que sabes ahora?")
 
     respuesta = st.text_area(
-        "Ahora responde la pregunta",
-        placeholder="No busques la respuesta. Queremos conocer tu punto de partida."
+        "Intenta responder la pregunta",
+        placeholder=(
+            "No busques información todavía. Queremos registrar "
+            "tu punto de partida real."
+        )
     )
 
-    if st.button("Evaluar respuesta"):
+    if st.button("Crear checkpoint", type="primary"):
 
-        if not interpretacion.strip() or not respuesta.strip():
+        if not concepcion.strip() or not respuesta.strip():
             st.warning(
-                "Completa la comprensión de la consigna "
-                "y la respuesta técnica."
+                "Escribe primero qué piensas y después intenta responder. "
+                "Con esas dos piezas podemos construir tu Punto A."
             )
 
         else:
-            # ==========================================
-            # 1. COMPRENSIÓN DE LA CONSIGNA
-            # ==========================================
-
-            texto_interpretacion = interpretacion.lower()
-
-            comprension_puntos = 0
-            comprension_evidencias = []
-
-            if any(p in texto_interpretacion for p in [
-                "qué es",
-                "que es",
-                "explicar",
-                "definir",
-                "significa"
-            ]):
-                comprension_puntos += 1
-                comprension_evidencias.append(
-                    "Identifica que debe explicar qué es una dirección IP."
-                )
-
-            if any(p in texto_interpretacion for p in [
-                "para qué sirve",
-                "para que sirve",
-                "función",
-                "funcion",
-                "utilidad",
-                "sirve"
-            ]):
-                comprension_puntos += 1
-                comprension_evidencias.append(
-                    "Identifica que debe explicar para qué sirve una dirección IP."
-                )
-
-            if comprension_puntos == 0:
-                nivel_comprension = "No clara"
-            elif comprension_puntos == 1:
-                nivel_comprension = "Parcial"
-            else:
-                nivel_comprension = "Clara"
-
-            # ==========================================
-            # 2. CONOCIMIENTO TÉCNICO
-            # ==========================================
-
             texto = respuesta.lower()
 
             puntos = 0
             evidencias = []
+            brechas = []
 
-            # Identificación
+            # Evidencia 1 · Identificación / direccionamiento
             if any(p in texto for p in [
                 "identifica",
                 "identificar",
@@ -124,11 +105,14 @@ if area == "Redes":
             ]):
                 puntos += 1
                 evidencias.append(
-                    "Reconoce que una IP sirve para identificar "
-                    "o direccionar un equipo."
+                    "Reconoce que una IP puede identificar o direccionar un equipo."
+                )
+            else:
+                brechas.append(
+                    "Todavía no aparece con claridad la idea de identificación o direccionamiento."
                 )
 
-            # Red
+            # Evidencia 2 · Relación con una red
             if any(p in texto for p in [
                 "red",
                 "internet",
@@ -138,10 +122,14 @@ if area == "Redes":
             ]):
                 puntos += 1
                 evidencias.append(
-                    "Relaciona la dirección IP con la comunicación en una red."
+                    "Relaciona la dirección IP con equipos conectados en una red."
+                )
+            else:
+                brechas.append(
+                    "Todavía no aparece con claridad la relación entre la IP y una red."
                 )
 
-            # Comunicación / destino
+            # Evidencia 3 · Comunicación / destino
             if any(p in texto for p in [
                 "comunicar",
                 "comunicación",
@@ -153,98 +141,155 @@ if area == "Redes":
             ]):
                 puntos += 1
                 evidencias.append(
-                    "Reconoce su función para dirigir comunicaciones "
-                    "entre equipos."
+                    "Reconoce que la IP participa en dirigir comunicaciones entre equipos."
+                )
+            else:
+                brechas.append(
+                    "Podemos explorar cómo la dirección IP ayuda a que la información llegue a un destino."
                 )
 
             if puntos == 0:
-                nivel = "Inicial"
-                mensaje = (
-                    "Todavía no hay evidencia suficiente "
-                    "sobre direccionamiento IP."
+                nivel = "Exploración inicial"
+                interpretacion = (
+                    "Aún no hay evidencia suficiente para describir el concepto técnico, "
+                    "pero ya tenemos una concepción inicial desde la cual trabajar."
+                )
+                siguiente_paso = (
+                    "Relacionar la idea de dirección con la identificación de un equipo dentro de una red."
                 )
 
             elif puntos == 1:
-                nivel = "En exploración"
-                mensaje = (
-                    "Ya reconoces una parte importante del concepto."
+                nivel = "Primeras conexiones"
+                interpretacion = (
+                    "Ya aparece una parte importante del concepto. "
+                    "Ahora podemos conectarla con las piezas que todavía no aparecen."
+                )
+                siguiente_paso = (
+                    "Conectar identificación, red y comunicación usando un ejemplo sencillo."
                 )
 
             elif puntos == 2:
                 nivel = "En desarrollo"
-                mensaje = (
-                    "Comprendes los elementos principales "
-                    "de una dirección IP."
+                interpretacion = (
+                    "Ya relacionas dos elementos fundamentales del direccionamiento IP."
+                )
+                siguiente_paso = (
+                    "Explorar la pieza que falta y comprobarla con un ejemplo de origen y destino."
                 )
 
             else:
-                nivel = "Sólido"
-                mensaje = (
-                    "Tu explicación contiene los conceptos fundamentales."
+                nivel = "Base sólida"
+                interpretacion = (
+                    "Tu respuesta contiene las relaciones fundamentales que buscábamos observar."
+                )
+                siguiente_paso = (
+                    "Ahora sigamos por acá: distinguir la función de IP, gateway y DNS en una comunicación."
                 )
 
+            checkpoint_id = len(st.session_state.checkpoints) + 1
+
+            checkpoint = {
+                "checkpoint": checkpoint_id,
+                "version": "0.1",
+                "fecha_utc": datetime.now(timezone.utc).isoformat(),
+                "persona": nombre.strip() or "•",
+                "area": "Redes",
+                "tema": "Direccionamiento IP",
+                "pregunta": pregunta,
+                "punto_a": {
+                    "concepcion": concepcion.strip(),
+                    "respuesta_actual": respuesta.strip(),
+                    "conocimiento_observado": {
+                        "puntos": puntos,
+                        "maximo": 3,
+                        "nivel": nivel
+                    }
+                },
+                "evidencias": evidencias,
+                "por_explorar": brechas,
+                "interpretacion": interpretacion,
+                "siguiente_paso": siguiente_paso,
+                "fuente": "CO•RA Tutor · interacción directa",
+                "estado": "checkpoint_de_sesion"
+            }
+
+            st.session_state.checkpoints.append(checkpoint)
+
             # ==========================================
-            # RESULTADOS
+            # CHECKPOINT V0.1
             # ==========================================
 
-            st.success("Respuesta analizada.")
+            st.success("Checkpoint creado.")
+            st.markdown(f"## 🧭 Checkpoint {checkpoint_id:03d} · Punto A")
 
-            st.markdown("### Evaluación por dimensiones")
+            st.markdown("#### Lo que piensas")
+            st.write(concepcion)
+
+            st.markdown("#### Lo que ya demostraste")
+            if evidencias:
+                for evidencia in evidencias:
+                    st.write("✓", evidencia)
+            else:
+                st.write(
+                    "Todavía no registramos evidencia técnica suficiente. "
+                    "Eso no significa que no exista conocimiento; significa que aún no apareció en esta respuesta."
+                )
+
+            st.markdown("#### Lo que podemos explorar")
+            if brechas:
+                for brecha in brechas:
+                    st.write("•", brecha)
+            else:
+                st.write("• No detectamos una brecha básica en esta primera pregunta.")
 
             col1, col2 = st.columns(2)
 
             with col1:
                 st.metric(
-                    "Comprensión de consigna",
-                    f"{comprension_puntos}/2 · {nivel_comprension}"
+                    "Evidencia técnica observada",
+                    f"{puntos}/3"
                 )
 
             with col2:
                 st.metric(
-                    "Conocimiento técnico",
-                    f"{puntos}/3 · {nivel}"
+                    "Punto actual",
+                    nivel
                 )
-
-            st.markdown(f"### {nombre} · Redes")
-
-            if comprension_evidencias:
-                st.markdown("#### Evidencia de comprensión")
-
-                for evidencia in comprension_evidencias:
-                    st.write("•", evidencia)
-
-            if evidencias:
-                st.markdown("#### Evidencia técnica")
-
-                for evidencia in evidencias:
-                    st.write("•", evidencia)
 
             st.markdown("#### Interpretación")
+            st.write(interpretacion)
 
-            st.write(mensaje)
+            st.markdown("#### Ahora sigamos por acá")
+            st.info(siguiente_paso)
 
-            st.markdown("#### Siguiente paso")
+            with st.expander("Ver checkpoint como dato estructurado"):
+                st.json(checkpoint)
 
-            if comprension_puntos < 2:
-                st.info(
-                    "Primero vamos a reforzar la comprensión de la consigna "
-                    "antes de aumentar la dificultad técnica."
-                )
+            st.download_button(
+                "Descargar checkpoint JSON",
+                data=json.dumps(checkpoint, ensure_ascii=False, indent=2),
+                file_name=f"cora_checkpoint_{checkpoint_id:03d}.json",
+                mime="application/json"
+            )
 
-            elif puntos < 2:
-                st.info(
-                    "La consigna fue comprendida. Ahora vamos a reforzar "
-                    "qué significa identificar un dispositivo dentro de una red."
-                )
+            st.caption(
+                "En esta versión los checkpoints se conservan durante la sesión actual. "
+                "La persistencia entre sesiones será un paso posterior."
+            )
 
-            else:
-                st.info(
-                    "La consigna fue comprendida. La siguiente habilidad "
-                    "será distinguir IP, gateway y DNS."
-                )
+    if st.session_state.checkpoints:
+        st.divider()
+        st.caption(
+            f"Checkpoints creados en esta sesión: {len(st.session_state.checkpoints)}"
+        )
 
 else:
     st.info(
-        f"El diagnóstico de **{area}** será agregado "
-        "después de validar primero el modelo con Redes."
+        f"La exploración de **{area}** será agregada después de validar "
+        "primero el modelo de checkpoints con Redes."
     )
+'''
+
+path = Path("/mnt/data/app.py")
+path.write_text(code, encoding="utf-8")
+print(path)
