@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 import streamlit as st
-
+from ejemplos_fisicos import EJEMPLOS_FISICOS
 st.set_page_config(
     page_title="CO•RA Tutor",
     page_icon="🧭",
@@ -43,7 +43,7 @@ if area == "Redes":
     st.markdown("### Pregunta 1 · Direccionamiento IP")
 
     pregunta = "¿Qué es una dirección IP y para qué sirve?"
-
+    puente = EJEMPLOS_FISICOS["ip"]
     st.write(
         "Con tus propias palabras: "
         f"**{pregunta}**"
