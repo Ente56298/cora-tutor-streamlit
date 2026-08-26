@@ -34,12 +34,13 @@ if intencion_texto.strip():
             for recurso in recursos_texto.split(",")
             if recurso.strip()
         ]
+
     intencion["escenarios"] = generar_escenarios(intencion)
 
-for escenario in intencion["escenarios"]:
-    escenario["evaluacion"] = evaluar_escenario(escenario)
+    for escenario in intencion["escenarios"]:
+        escenario["evaluacion"] = evaluar_escenario(escenario)
 
-st.json(intencion)
+    st.json(intencion)
     
 # Memoria temporal del prototipo.
 # Por ahora los checkpoints viven durante la sesión de Streamlit.
