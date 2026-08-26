@@ -5,6 +5,8 @@ import streamlit as st
 from ejemplos_fisicos import EJEMPLOS_FISICOS
 from core.motor_intencion import crear_intencion
 from core.motor_escenarios import generar_escenarios
+from core.motor_evaluacion import evaluar_escenario
+
 st.set_page_config(
     page_title="CO•RA Tutor",
     page_icon="🧭",
@@ -33,7 +35,11 @@ if intencion_texto.strip():
             if recurso.strip()
         ]
     intencion["escenarios"] = generar_escenarios(intencion)
-    st.json(intencion)
+
+for escenario in intencion["escenarios"]:
+    escenario["evaluacion"] = evaluar_escenario(escenario)
+
+st.json(intencion)
     
 # Memoria temporal del prototipo.
 # Por ahora los checkpoints viven durante la sesión de Streamlit.
