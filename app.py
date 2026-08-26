@@ -39,8 +39,17 @@ if area == "Redes":
         "**¿qué es una dirección IP y para qué sirve?**"
     )
 
+    st.markdown("#### 1. Comprensión de la consigna")
+
+    interpretacion = st.text_area(
+        "Antes de responder, ¿qué entiendes que te está preguntando?",
+        placeholder="Explica brevemente qué crees que debes responder."
+    )
+
+    st.markdown("#### 2. Conocimiento técnico")
+
     respuesta = st.text_area(
-        "Tu respuesta",
+        "Ahora responde la pregunta",
         placeholder="No busques la respuesta. Queremos conocer tu punto de partida."
     )
 
