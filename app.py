@@ -86,8 +86,7 @@ if area == "Redes":
             )
 
         else:
-            texto = respuesta.lower()
-
+            texto = f"{concepcion} {respuesta}".lower()
             puntos = 0
             evidencias = []
             brechas = []
