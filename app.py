@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import streamlit as st
 from ejemplos_fisicos import EJEMPLOS_FISICOS
 from core.motor_intencion import crear_intencion
+from core.motor_escenarios import generar_escenarios
 st.set_page_config(
     page_title="CO•RA Tutor",
     page_icon="🧭",
@@ -31,7 +32,7 @@ if intencion_texto.strip():
             for recurso in recursos_texto.split(",")
             if recurso.strip()
         ]
-
+    intencion["escenarios"] = generar_escenarios(intencion)
     st.json(intencion)
     
 # Memoria temporal del prototipo.
