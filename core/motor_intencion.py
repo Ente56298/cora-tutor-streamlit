@@ -21,6 +21,7 @@ def crear_intencion(texto):
         "texto_original": texto,
         "objetivo": objetivo,
         "restricciones": restricciones,
+        "recursos_disponibles": [],
         "recursos_necesarios": [],
         "trazas_relacionadas": [],
         "escenarios": [],
