@@ -40,6 +40,13 @@ if intencion_texto.strip():
             if recurso.strip()
         ]
 
+        intencion["observaciones"] = []
+
+    if observacion_texto.strip():
+        intencion["observaciones"].append(
+            crear_observacion_reportada(observacion_texto)
+        )
+        
     intencion["escenarios"] = generar_escenarios(intencion)
 
     for escenario in intencion["escenarios"]:
