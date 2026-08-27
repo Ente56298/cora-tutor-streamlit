@@ -1,339 +1,265 @@
-import json
-from datetime import datetime, timezone
-
+"""
+CO•RA Tutor — Trayectoria Adaptativa de Aprendizaje
+Integración GitHub Memory Bank + Matriz Dorsal de Eventos + Historial ChatGPT
+"""
 import streamlit as st
-from ejemplos_fisicos import EJEMPLOS_FISICOS
-from core.motor_intencion import crear_intencion
-from core.motor_escenarios import generar_escenarios
-from core.motor_evaluacion import evaluar_escenario
-from core.motor_observacion import crear_observacion_reportada
+import requests
+import json
+import hashlib
+import base64
+from datetime import datetime
+from pathlib import Path
 
+# ============================================
+# CONFIGURACIÓN DE PÁGINA
+# ============================================
 st.set_page_config(
     page_title="CO•RA Tutor",
     page_icon="🧭",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
+# ============================================
+# CONFIGURACIÓN GITHUB
+# ============================================
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+GITHUB_USER = "Ente56298"
+REPO_NAME = "CO-RA_Ecosistema_Cognitivo_Inclusivo"
+
+# ============================================
+# CLASE PUENTE GITHUB
+# ============================================
+class CORAGitHubBridge:
+    """Puente de integración entre Streamlit y GitHub Memory Bank"""
+    
+    def __init__(self, token: str, owner: str, repo: str):
+        self.token = token
+        self.owner = owner
+        self.repo = repo
+        self.base_url = f"https://api.github.com/repos/{owner}/{repo}/contents"
+        self.headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+    
+    def leer_contexto(self, ruta: str):
+        """Recupera contexto desde GitHub Memory Bank"""
+        url = f"{self.base_url}/{ruta}"
+        response = requests.get(url, headers=self.headers)
+        if response.status_code == 200:
+            content = base64.b64decode(response.json()["content"]).decode('utf-8')
+            return json.loads(content)
+        return None
+    
+    def anclar_evento(self, usuario: str, evento_id: str, payload: dict):
+        """Ancla evento en Matriz Dorsal con hash SHA-512"""
+        ruta = f"matriz_dorsal/usuarios/{usuario}/eventos.jsonl"
+        url = f"{self.base_url}/{ruta}"
+        
+        response = requests.get(url, headers=self.headers)
+        contenido_actual = ""
+        sha_actual = ""
+        
+        if response.status_code == 200:
+            contenido_actual = base64.b64decode(response.json()["content"]).decode('utf-8')
+            sha_actual = response.json()["sha"]
+        
+        payload_str = json.dumps(payload, sort_keys=True)
+        hash_forense = hashlib.sha512(payload_str.encode('utf-8')).hexdigest()
+        
+        nuevo_registro = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "evento_id": evento_id,
+            "usuario": usuario,
+            "hash_sha512": hash_forense,
+            "datos": payload
+        }
+        
+        contenido_nuevo = contenido_actual + json.dumps(nuevo_registro) + "\n"
+        
+        commit_data = {
+            "message": f"🔒 [CO•RA] {evento_id} | {usuario}",
+            "content": base64.b64encode(contenido_nuevo.encode('utf-8')).decode('utf-8'),
+            "branch": "main"
+        }
+        if sha_actual:
+            commit_data["sha"] = sha_actual
+        
+        return requests.put(url, headers=self.headers, json=commit_data)
+
+# ============================================
+# CARGAR CONVERSACIONES EXTRAÍDAS
+# ============================================
+def cargar_conversaciones():
+    """Carga las conversaciones extraídas del archivo JSON"""
+    ruta = Path("data/conversaciones_extraidas.json")
+    if ruta.exists():
+        with open(ruta, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+# ============================================
+# INTERFAZ PRINCIPAL
+# ============================================
 st.title("🧭 CO•RA Tutor")
-st.subheader("Trayectoria adaptativa de aprendizaje")
+st.markdown("### Trayectoria adaptativa de aprendizaje")
 st.caption("Contexto abundante por detrás; simplicidad por delante.")
 
-intencion_texto = st.text_input(
-    "¿Qué quieres lograr?"
-)
-
-recursos_texto = st.text_input(
-    "¿Con qué cuentas ahora?"
-)
-
-observacion_texto = st.text_input(
-    "¿Qué estás observando?"
-)
-
-if intencion_texto.strip():
-    intencion = crear_intencion(intencion_texto)
-
-    if recursos_texto.strip():
-        intencion["recursos_disponibles"] = [
-            recurso.strip()
-            for recurso in recursos_texto.split(",")
-            if recurso.strip()
-        ]
+# Sidebar - Configuración
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    token = st.text_input("GitHub Token", type="password", value=GITHUB_TOKEN)
+    usuario = st.text_input("Usuario", value="Jorge")
     
-    intencion["observaciones"] = []
+    if token:
+        bridge = CORAGitHubBridge(token, GITHUB_USER, REPO_NAME)
+        st.success("✅ Bridge inicializado")
 
-    if observacion_texto.strip():
-        intencion["observaciones"].append(
-            crear_observacion_reportada(observacion_texto)
-        )
+# Tabs principales
+tab1, tab2, tab3 = st.tabs([
+    " Explorar Área",
+    "📚 Historial ChatGPT",
+    "🧠 Memory Bank"
+])
+
+# ============================================
+# TAB 1: EXPLORAR ÁREA
+# ============================================
+with tab1:
+    st.subheader("📋 Contexto Inicial")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        objetivo = st.text_input("¿Qué quieres lograr?")
+        recursos = st.text_area("¿Con qué cuentas ahora?")
+    
+    with col2:
+        observacion = st.text_area("¿Qué estás observando?")
+        nombre = st.text_input("¿Cómo quieres que te llame?", value=usuario)
+    
+    st.subheader("🎯 Selecciona un área para explorar")
+    
+    areas = {
+        "redes": "🌐 Redes y Direccionamiento IP",
+        "programacion": "💻 Programación y Automatización",
+        "contable": "📊 Contabilidad y Fiscal (SAT/NIF)",
+        "municipal": "️ Gestión Municipal y Transparencia",
+        "geoespacial": "🗺️ Sistemas de Información Geográfica",
+        "ia": " Inteligencia Artificial y Machine Learning"
+    }
+    
+    area_seleccionada = st.selectbox(
+        "Área de conocimiento", 
+        list(areas.values()),
+        help="Selecciona el área que quieres explorar hoy"
+    )
+    
+    if area_seleccionada:
+        st.subheader(f" Pregunta 1 · {area_seleccionada}")
         
-    intencion["escenarios"] = generar_escenarios(intencion)
+        pregunta = "Con tus propias palabras: ¿Qué es una dirección IP y para qué sirve?"
+        st.markdown(f"**{pregunta}**")
+        
+        st.markdown("#### 1. Punto A · ¿Qué piensas al respecto?")
+        st.caption("Antes de buscar una respuesta correcta, cuéntame cómo lo entiendes tú.")
+        modelo_mental = st.text_area("Tu comprensión actual", height=100)
+        
+        st.markdown("#### 2. ¿Qué puedes explicar con lo que sabes ahora?")
+        st.caption("Intenta responder la pregunta")
+        respuesta_ejecucion = st.text_area("Tu respuesta", height=100)
+        
+        if st.button("🔍 Analizar y Anclar", type="primary"):
+            if modelo_mental and respuesta_ejecucion:
+                with st.spinner("Procesando a través del núcleo CO•RA..."):
+                    if token:
+                        bridge.anclar_evento(
+                            usuario=nombre,
+                            evento_id="TUTOR_MENTAL_MODEL_SUBMITTED",
+                            payload={
+                                "area": area_seleccionada,
+                                "modelo_mental": modelo_mental,
+                                "respuesta_ejecucion": respuesta_ejecucion,
+                                "objetivo": objetivo,
+                                "recursos": recursos,
+                                "observacion": observacion
+                            }
+                        )
+                        st.success("✅ Evento anclado en Matriz Dorsal")
+                    
+                    st.info("🔄 Analizando trayectoria de aprendizaje...")
+            else:
+                st.warning("⚠️ Por favor completa ambos campos para continuar")
 
-    for escenario in intencion["escenarios"]:
-        escenario["evaluacion"] = evaluar_escenario(escenario)
-
-    st.json(intencion)
+# ============================================
+# TAB 2: HISTORIAL CHATGPT
+# ============================================
+with tab2:
+    st.subheader("📚 Historial de Conversaciones ChatGPT")
+    st.caption("Contextos previos detectados de tu trayectoria de aprendizaje")
     
-# Memoria temporal del prototipo.
-# Por ahora los checkpoints viven durante la sesión de Streamlit.
-if "checkpoints" not in st.session_state:
-    st.session_state.checkpoints = []
-
-# Identidad mínima
-nombre = st.text_input(
-    "¿Cómo quieres que te llame?",
-    value="•"
-)
-
-area = st.selectbox(
-    "Selecciona un área para explorar",
-    [
-        "Redes",
-        "Linux",
-        "Python",
-        "SQL",
-        "Web / HTTP",
-        "Git y GitHub"
-    ]
-)
-
-st.divider()
-
-if area == "Redes":
-
-    st.markdown("### Pregunta 1 · Direccionamiento IP")
-
-    pregunta = "¿Qué es una dirección IP y para qué sirve?"
-    puente = EJEMPLOS_FISICOS["ip"]
-    st.write(
-        "Con tus propias palabras: "
-        f"**{pregunta}**"
-    )
-
-    # ==========================================
-    # 1. PUNTO A · CONCEPCIÓN INICIAL
-    # ==========================================
-
-    st.markdown("#### 1. Punto A · ¿Qué piensas al respecto?")
-
-    concepcion = st.text_area(
-        "Antes de buscar una respuesta correcta, cuéntame cómo lo entiendes tú.",
-        placeholder=(
-            "Puedes usar ejemplos, comparaciones, recuerdos o dudas. "
-            "Aquí no se califica si está bien o mal."
-        )
-    )
-
-    # ==========================================
-    # 2. CONOCIMIENTO DEMOSTRADO
-    # ==========================================
-
-    st.markdown("#### 2. ¿Qué puedes explicar con lo que sabes ahora?")
-
-    respuesta = st.text_area(
-        "Intenta responder la pregunta",
-        placeholder=(
-            "No busques información todavía. Queremos registrar "
-            "tu punto de partida real."
-        )
-    )
-
-    if st.button("Crear checkpoint", type="primary"):
-
-        if not concepcion.strip() or not respuesta.strip():
-            st.warning(
-                "Escribe primero qué piensas y después intenta responder. "
-                "Con esas dos piezas podemos construir tu Punto A."
+    conversaciones = cargar_conversaciones()
+    
+    if conversaciones:
+        # Métricas
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Conversaciones", len(conversaciones))
+        with col2:
+            ancladas = sum(1 for c in conversaciones if c.get('is_pinned'))
+            st.metric("Conversaciones Ancladas", ancladas)
+        with col3:
+            categorias_unicas = len(set(c.get('categoria') for c in conversaciones))
+            st.metric("Categorías Exploradas", categorias_unicas)
+        
+        st.markdown("---")
+        
+        # Filtros
+        col_filtro1, col_filtro2 = st.columns(2)
+        with col_filtro1:
+            filtro_categoria = st.multiselect(
+                "Filtrar por categoría",
+                list(set(c.get('categoria') for c in conversaciones)),
+                default=[]
             )
+        with col_filtro2:
+            solo_ancladas = st.checkbox("Mostrar solo ancladas ")
+        
+        # Aplicar filtros
+        conversaciones_filtradas = conversaciones
+        if filtro_categoria:
+            conversaciones_filtradas = [c for c in conversaciones_filtradas if c.get('categoria') in filtro_categoria]
+        if solo_ancladas:
+            conversaciones_filtradas = [c for c in conversaciones_filtradas if c.get('is_pinned')]
+        
+        st.markdown(f"**{len(conversaciones_filtradas)} conversaciones encontradas**")
+        
+        # Mostrar conversaciones
+        for conv in conversaciones_filtradas:
+            pinned = "📌" if conv.get('is_pinned') else "💬"
+            categoria = conv.get('categoria', 'sin_clasificar')
+            
+            with st.expander(f"{pinned} {conv.get('titulo')} [{categoria}]"):
+                st.write(f"**Categoría:** {categoria}")
+                st.write(f"**Anclada:** {'Sí' if conv.get('is_pinned') else 'No'}")
+                st.write(f"**Fecha extracción:** {conv.get('fecha_extraccion', 'N/A')}")
+                if conv.get('url_completa'):
+                    st.link_button("Ver conversación", conv['url_completa'])
+    else:
+        st.info("No hay conversaciones extraídas. Ejecuta `python extractor_conversaciones.py` primero.")
 
+# ============================================
+# TAB 3: MEMORY BANK
+# ============================================
+with tab3:
+    st.subheader("🧠 Memory Bank")
+    
+    if token and st.button("Cargar contexto desde GitHub"):
+        contexto = bridge.leer_contexto(
+            f"memory_bank/usuarios/{nombre}/contexto_unificado.json"
+        )
+        if contexto:
+            st.json(contexto)
         else:
-            texto = f"{concepcion} {respuesta}".lower()
-            puntos = 0
-            evidencias = []
-            brechas = []
-
-            # Evidencia 1 · Identificación / direccionamiento
-            if any(p in texto for p in [
-                "identifica",
-                "identificar",
-                "dirección",
-                "direccion",
-                "dispositivo",
-                "equipo"
-            ]):
-                puntos += 1
-                evidencias.append(
-                    "Reconoce que una IP puede identificar o direccionar un equipo."
-                )
-            else:
-                brechas.append(
-                    "Todavía no aparece con claridad la idea de identificación o direccionamiento."
-                )
-
-            # Evidencia 2 · Relación con una red
-            if any(p in texto for p in [
-                "red",
-                "internet",
-                "conectar",
-                "conexión",
-                "conexion"
-            ]):
-                puntos += 1
-                evidencias.append(
-                    "Relaciona la dirección IP con equipos conectados en una red."
-                )
-            else:
-                brechas.append(
-                    "Todavía no aparece con claridad la relación entre la IP y una red."
-                )
-
-            # Evidencia 3 · Comunicación / destino
-            if any(p in texto for p in [
-                "comunicar",
-                "comunicación",
-                "comunicacion",
-                "enviar",
-                "recibir",
-                "localizar",
-                "destino"
-            ]):
-                puntos += 1
-                evidencias.append(
-                    "Reconoce que la IP participa en dirigir comunicaciones entre equipos."
-                )
-            else:
-                brechas.append(
-                    "Podemos explorar cómo la dirección IP ayuda a que la información llegue a un destino."
-                )
-
-            if puntos == 0:
-                nivel = "Exploración inicial"
-                interpretacion = (
-                    "Aún no hay evidencia suficiente para describir el concepto técnico, "
-                    "pero ya tenemos una concepción inicial desde la cual trabajar."
-                )
-                siguiente_paso = (
-                    "Relacionar la idea de dirección con la identificación de un equipo dentro de una red."
-                )
-
-            elif puntos == 1:
-                nivel = "Primeras conexiones"
-                interpretacion = (
-                    "Ya aparece una parte importante del concepto. "
-                    "Ahora podemos conectarla con las piezas que todavía no aparecen."
-                )
-                siguiente_paso = (
-                    "Conectar identificación, red y comunicación usando un ejemplo sencillo."
-                )
-
-            elif puntos == 2:
-                nivel = "En desarrollo"
-                interpretacion = (
-                    "Ya relacionas dos elementos fundamentales del direccionamiento IP."
-                )
-                siguiente_paso = (
-                    "Explorar la pieza que falta y comprobarla con un ejemplo de origen y destino."
-                )
-
-            else:
-                nivel = "Base sólida"
-                interpretacion = (
-                    "Tu respuesta contiene las relaciones fundamentales que buscábamos observar."
-                )
-                siguiente_paso = (
-                    "Ahora sigamos por acá: distinguir la función de IP, gateway y DNS en una comunicación."
-                )
-
-            checkpoint_id = len(st.session_state.checkpoints) + 1
-
-            checkpoint = {
-                "checkpoint": checkpoint_id,
-                "version": "0.1",
-                "fecha_utc": datetime.now(timezone.utc).isoformat(),
-                "persona": nombre.strip() or "•",
-                "area": "Redes",
-                "tema": "Direccionamiento IP",
-                "pregunta": pregunta,
-                "punto_a": {
-                    "concepcion": concepcion.strip(),
-                    "respuesta_actual": respuesta.strip(),
-                    "conocimiento_observado": {
-                        "puntos": puntos,
-                        "maximo": 3,
-                        "nivel": nivel
-                    }
-                },
-                "evidencias": evidencias,
-                "por_explorar": brechas,
-                "puente_fisico": {
-                    "concepto": "ip",
-                    "ejemplo": puente["ejemplo"],
-                    "ayuda": puente["ayuda"],
-                    "limite": puente["limite"]
-                },
-             
-                "interpretacion": interpretacion,
-                "siguiente_paso": siguiente_paso,
-                "fuente": "CO•RA Tutor · interacción directa",
-                "estado": "checkpoint_de_sesion"
-            }
-
-            st.session_state.checkpoints.append(checkpoint)
-
-            # ==========================================
-            # CHECKPOINT V0.1
-            # ==========================================
-
-            st.success("Checkpoint creado.")
-            st.markdown(f"## 🧭 Checkpoint {checkpoint_id:03d} · Punto A")
-
-            st.markdown("#### Lo que piensas")
-            st.write(concepcion)
-
-            st.markdown("#### Lo que ya demostraste")
-            if evidencias:
-                for evidencia in evidencias:
-                    st.write("✓", evidencia)
-            else:
-                st.write(
-                    "Todavía no registramos evidencia técnica suficiente. "
-                    "Eso no significa que no exista conocimiento; significa que aún no apareció en esta respuesta."
-                )
-
-            st.markdown("#### Lo que podemos explorar")
-            if brechas:
-                for brecha in brechas:
-                    st.write("•", brecha)
-            else:
-                st.write("• No detectamos una brecha básica en esta primera pregunta.")
-                
-            st.markdown("#### 🌍 Puente con el mundo físico")
-            st.write(f"**Ejemplo:** {puente['ejemplo']}")
-            st.write(f"**Ayuda a comprender:** {puente['ayuda']}")
-            st.caption(f"Límite de la analogía: {puente['limite']}")
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric(
-                    "Evidencia técnica observada",
-                    f"{puntos}/3"
-                )
-
-            with col2:
-                st.metric(
-                    "Punto actual",
-                    nivel
-                )
-
-            st.markdown("#### Interpretación")
-            st.write(interpretacion)
-
-            st.markdown("#### Ahora sigamos por acá")
-            st.info(siguiente_paso)
-
-            with st.expander("Ver checkpoint como dato estructurado"):
-                st.json(checkpoint)
-
-            st.download_button(
-                "Descargar checkpoint JSON",
-                data=json.dumps(checkpoint, ensure_ascii=False, indent=2),
-                file_name=f"cora_checkpoint_{checkpoint_id:03d}.json",
-                mime="application/json"
-            )
-
-            st.caption(
-                "En esta versión los checkpoints se conservan durante la sesión actual. "
-                "La persistencia entre sesiones será un paso posterior."
-            )
-
-    if st.session_state.checkpoints:
-        st.divider()
-        st.caption(
-            f"Checkpoints creados en esta sesión: {len(st.session_state.checkpoints)}"
-        )
-
-else:
-    st.info(
-        f"La exploración de **{area}** será agregada después de validar "
-        "primero el modelo de checkpoints con Redes."
-    )
+            st.info("No hay contexto previo. Este es tu Punto A inicial.")
