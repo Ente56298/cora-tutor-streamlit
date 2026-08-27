@@ -1,3 +1,5 @@
+# Crear/actualizar requirements.txt
+@"
 streamlit>=1.37.0
 requests>=2.32.3
 beautifulsoup4>=4.12.3
@@ -6,3 +8,6 @@ pydantic>=2.8.2
 httpx>=0.27.0
 pandas>=2.2.2
 plotly>=5.23.0
+"@ | Out-File -FilePath "requirements.txt" -Encoding UTF8
+
+Write-Host "✅ requirements.txt actualizado" -ForegroundColor Green
