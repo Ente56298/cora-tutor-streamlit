@@ -1,6 +1,6 @@
 """
 CO•RA Tutor — Trayectoria Adaptativa de Aprendizaje
-Integración GitHub Memory Bank + Matriz Dorsal de Eventos + Historial ChatGPT
+Integración GitHub Memory Bank + Matriz Dorsal + 8 Áreas de Conocimiento
 """
 import streamlit as st
 import requests
@@ -9,6 +9,8 @@ import hashlib
 import base64
 from datetime import datetime
 from pathlib import Path
+from areas_conocimiento import AREAS_CONOCIMIENTO
+from rastreador_contextos import RastreadorContextos
 
 # ============================================
 # CONFIGURACIÓN DE PÁGINA
@@ -118,13 +120,13 @@ with st.sidebar:
 
 # Tabs principales
 tab1, tab2, tab3 = st.tabs([
-    " Explorar Área",
+    "🎯 Explorar Área",
     "📚 Historial ChatGPT",
     "🧠 Memory Bank"
 ])
 
 # ============================================
-# TAB 1: EXPLORAR ÁREA
+# TAB 1: EXPLORAR ÁREA (CON 8 ÁREAS)
 # ============================================
 with tab1:
     st.subheader("📋 Contexto Inicial")
@@ -139,38 +141,76 @@ with tab1:
         observacion = st.text_area("¿Qué estás observando?")
         nombre = st.text_input("¿Cómo quieres que te llame?", value=usuario)
     
+    st.markdown("---")
     st.subheader("🎯 Selecciona un área para explorar")
     
-    areas = {
-        "redes": "🌐 Redes y Direccionamiento IP",
-        "programacion": "💻 Programación y Automatización",
-        "contable": "📊 Contabilidad y Fiscal (SAT/NIF)",
-        "municipal": "️ Gestión Municipal y Transparencia",
-        "geoespacial": "🗺️ Sistemas de Información Geográfica",
-        "ia": " Inteligencia Artificial y Machine Learning"
-    }
+    # Mostrar áreas como tarjetas
+    cols = st.columns(4)
+    areas_lista = list(AREAS_CONOCIMIENTO.values())
     
-    area_seleccionada = st.selectbox(
-        "Área de conocimiento", 
-        list(areas.values()),
-        help="Selecciona el área que quieres explorar hoy"
-    )
+    for idx, area in enumerate(areas_lista):
+        col = cols[idx % 4]
+        with col:
+            if st.button(
+                f"{area.icono} {area.nombre}",
+                key=f"area_{area.id}",
+                use_container_width=True
+            ):
+                st.session_state.area_seleccionada = area.id
     
-    if area_seleccionada:
-        st.subheader(f" Pregunta 1 · {area_seleccionada}")
+    # Cuando se selecciona un área
+    if 'area_seleccionada' in st.session_state:
+        area_id = st.session_state.area_seleccionada
+        rastreador = RastreadorContextos()
         
-        pregunta = "Con tus propias palabras: ¿Qué es una dirección IP y para qué sirve?"
-        st.markdown(f"**{pregunta}**")
+        # Cargar historial del usuario
+        historial_usuario = cargar_conversaciones()
         
+        # Rastrear contextos previos
+        analisis = rastreador.analizar_area_seleccionada(area_id, historial_usuario)
+        
+        # Mostrar resultados del rastreo
+        st.markdown("---")
+        st.subheader(f"{analisis['area_actual']['icono']} {analisis['area_actual']['nombre']}")
+        st.caption(analisis['area_actual']['descripcion'])
+        
+        # Mostrar recomendación de inicio
+        st.info(f"**{analisis['recomendacion_inicio']}**")
+        
+        # Mostrar contextos previos detectados
+        if analisis['contextos_previos_detectados']:
+            with st.expander(f"🔍 {analisis['total_contextos']} contextos previos detectados"):
+                for ctx in analisis['contextos_previos_detectados']:
+                    pinned = "" if ctx['is_pinned'] else "💬"
+                    st.write(f"{pinned} {ctx['titulo']}")
+        
+        # Mostrar áreas conectadas
+        if analisis['areas_conectadas']:
+            st.markdown("**🔗 Áreas conectadas con tu trayectoria:**")
+            cols_conn = st.columns(min(3, len(analisis['areas_conectadas'])))
+            for idx, area_conn in enumerate(analisis['areas_conectadas']):
+                with cols_conn[idx % 3]:
+                    fortaleza = "✅" if area_conn['es_fortaleza'] else ""
+                    st.markdown(
+                        f"**{area_conn['icono']} {area_conn['nombre']}**\n\n"
+                        f"{fortaleza} {area_conn['contextos_encontrados']} contextos"
+                    )
+        
+        # Pregunta adaptada
+        pregunta = analisis['pregunta_sugerida']
+        st.markdown(f"### 📝 Pregunta · {pregunta}")
+        
+        # Formulario de respuesta
         st.markdown("#### 1. Punto A · ¿Qué piensas al respecto?")
         st.caption("Antes de buscar una respuesta correcta, cuéntame cómo lo entiendes tú.")
-        modelo_mental = st.text_area("Tu comprensión actual", height=100)
+        modelo_mental = st.text_area("Tu comprensión actual", height=100, key=f"modelo_{area_id}")
         
         st.markdown("#### 2. ¿Qué puedes explicar con lo que sabes ahora?")
         st.caption("Intenta responder la pregunta")
-        respuesta_ejecucion = st.text_area("Tu respuesta", height=100)
+        respuesta_ejecucion = st.text_area("Tu respuesta", height=100, key=f"respuesta_{area_id}")
         
-        if st.button("🔍 Analizar y Anclar", type="primary"):
+        # Botón de análisis
+        if st.button("🔍 Analizar y Anclar", type="primary", key=f"analizar_{area_id}"):
             if modelo_mental and respuesta_ejecucion:
                 with st.spinner("Procesando a través del núcleo CO•RA..."):
                     if token:
@@ -178,19 +218,22 @@ with tab1:
                             usuario=nombre,
                             evento_id="TUTOR_MENTAL_MODEL_SUBMITTED",
                             payload={
-                                "area": area_seleccionada,
+                                "area": area_id,
+                                "area_nombre": analisis['area_actual']['nombre'],
+                                "pregunta": pregunta,
                                 "modelo_mental": modelo_mental,
                                 "respuesta_ejecucion": respuesta_ejecucion,
                                 "objetivo": objetivo,
                                 "recursos": recursos,
-                                "observacion": observacion
+                                "observacion": observacion,
+                                "contextos_previos": analisis['total_contextos']
                             }
                         )
                         st.success("✅ Evento anclado en Matriz Dorsal")
                     
                     st.info("🔄 Analizando trayectoria de aprendizaje...")
             else:
-                st.warning("⚠️ Por favor completa ambos campos para continuar")
+                st.warning("️ Por favor completa ambos campos para continuar")
 
 # ============================================
 # TAB 2: HISTORIAL CHATGPT
